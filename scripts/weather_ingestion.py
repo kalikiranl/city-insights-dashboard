@@ -47,7 +47,12 @@ class WeatherDataIngestion:
     def upload_to_blob(self, data, city):
         """Upload processed data to Azure Blob Storage."""
         blob_service_client = BlobServiceClient.from_connection_string(self.connection_string)
-        container_client = blob_service_client.get_container_client("weather-data")
+        container_name = "weather-data"
+        container_client = blob_service_client.get_container_client(container_name)
+        
+        # Create container if it doesn't exist
+        if not container_client.exists():
+            container_client.create_container()
         
         # Create blob name with city and timestamp
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")

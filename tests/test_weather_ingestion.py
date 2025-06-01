@@ -86,9 +86,13 @@ class TestWeatherDataIngestion(unittest.TestCase):
     @patch('azure.storage.blob.BlobServiceClient')
     def test_upload_to_blob(self, mock_blob_service):
         """Test blob storage upload."""
-        # Configure the mock
+        # Configure the mock container client
         mock_container_client = MagicMock()
+        mock_blob_service.from_connection_string.return_value = MagicMock()
         mock_blob_service.from_connection_string.return_value.get_container_client.return_value = mock_container_client
+
+        # Configure container exists check
+        mock_container_client.exists.return_value = True
 
         # Test data
         test_data = {
