@@ -1,0 +1,11 @@
+{
+    "city": "New York",
+    "country": "US",
+    "timestamp": "2024-03-20T12:00:00Z",
+    "temperature": 20.5,
+    "humidity": 65.0,
+    "pressure": 1013.2,
+    "wind_speed": 12.5,
+    "weather_description": "scattered clouds",
+    "weather_main": "Clouds"
+} 

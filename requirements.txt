@@ -1,0 +1,29 @@
+# Core Data Processing
+pyspark==3.4.1
+delta-spark==2.4.0
+pandas==2.1.4
+numpy==1.24.3
+
+# Azure Integration
+azure-storage-blob==12.19.0
+azure-identity==1.15.0
+azure-synapse-spark==0.7.0
+azure-mgmt-datafactory==3.1.0
+azure-storage-file-datalake==12.13.2
+
+# API Clients
+requests==2.31.0
+aiohttp==3.9.1
+
+# Data Validation & Testing
+great-expectations==0.18.7
+pytest==7.4.3
+
+# Development Tools
+black==23.12.1
+flake8==6.1.0
+isort==5.13.2
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.5.3 

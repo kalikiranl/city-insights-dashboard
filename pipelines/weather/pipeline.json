@@ -1,0 +1,91 @@
+{
+    "name": "WeatherDataPipeline",
+    "properties": {
+        "activities": [
+            {
+                "name": "Execute Weather Data Ingestion",
+                "type": "PythonActivity",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 1,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "scriptPath": "scripts/weather_ingestion.py",
+                    "pythonVersion": "3.8",
+                    "environmentVariables": {
+                        "OPENWEATHER_API_KEY": {
+                            "type": "SecureString",
+                            "value": "@pipeline().parameters.openWeatherApiKey"
+                        },
+                        "AZURE_STORAGE_CONNECTION_STRING": {
+                            "type": "SecureString",
+                            "value": "@pipeline().parameters.storageConnectionString"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "AzureDatabricksLinkedService",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "Transform Weather Data",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "Execute Weather Data Ingestion",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 1,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/notebooks/weather_transformation",
+                    "baseParameters": {
+                        "storage_account": "@pipeline().parameters.storageAccountName",
+                        "container": "@pipeline().parameters.containerName"
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "AzureDatabricksLinkedService",
+                    "type": "LinkedServiceReference"
+                }
+            }
+        ],
+        "parameters": {
+            "openWeatherApiKey": {
+                "type": "string"
+            },
+            "storageConnectionString": {
+                "type": "string"
+            },
+            "storageAccountName": {
+                "type": "string"
+            },
+            "containerName": {
+                "type": "string"
+            }
+        },
+        "variables": {
+            "runId": {
+                "type": "String"
+            }
+        },
+        "annotations": [],
+        "lastPublishTime": "2024-03-21T12:00:00Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+} 
