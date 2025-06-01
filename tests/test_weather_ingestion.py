@@ -84,20 +84,20 @@ class TestWeatherDataIngestion(unittest.TestCase):
         self.assertEqual(processed_data['weather_description'], 'scattered clouds')
         self.assertEqual(processed_data['weather_main'], 'Clouds')
 
-    @patch('azure.storage.blob.BlobServiceClient')
-    def test_upload_to_blob(self, mock_blob_service):
+    @patch('azure.storage.blob.BlobClient.upload_blob')
+    @patch('azure.storage.blob.BlobServiceClient.from_connection_string')
+    def test_upload_to_blob(self, mock_from_connection_string, mock_upload_blob):
         """Test blob storage upload."""
-        # Configure the mock container client with a proper chain of returns
+        # Configure the mock container client
         mock_container_client = MagicMock()
         mock_blob_client = MagicMock()
         
         # Set up the chain of mocks
-        mock_blob_service.from_connection_string.return_value = MagicMock()
-        mock_blob_service.from_connection_string.return_value.get_container_client.return_value = mock_container_client
+        mock_blob_service_instance = MagicMock()
+        mock_from_connection_string.return_value = mock_blob_service_instance
+        mock_blob_service_instance.get_container_client.return_value = mock_container_client
         mock_container_client.get_blob_client.return_value = mock_blob_client
-        
-        # Mock the exists method to avoid actual Azure calls
-        mock_container_client.exists = MagicMock(return_value=True)
+        mock_upload_blob.return_value = None  # Mock successful upload
         
         # Test data
         test_data = {
@@ -109,17 +109,22 @@ class TestWeatherDataIngestion(unittest.TestCase):
         # Test upload
         self.ingestion.upload_to_blob(test_data, {"name": "London", "country": "UK"})
         
-        # Verify the container client was called with correct name
-        mock_blob_service.from_connection_string.return_value.get_container_client.assert_called_once_with("weather-data")
+        # Verify the blob service client was created with correct connection string
+        mock_from_connection_string.assert_called_once_with(self.mock_connection_string)
         
-        # Verify exists was called
-        mock_container_client.exists.assert_called_once()
+        # Verify container client was created with correct name
+        mock_blob_service_instance.get_container_client.assert_called_once_with("weather-data")
+        
+        # Verify blob client was created with correct name pattern
+        mock_container_client.get_blob_client.assert_called_once()
+        blob_name_arg = mock_container_client.get_blob_client.call_args[0][0]
+        self.assertRegex(blob_name_arg, r'london/\d{8}_\d{6}\.json')
         
         # Verify upload_blob was called with correct data
-        mock_container_client.upload_blob.assert_called_once()
-        call_args = mock_container_client.upload_blob.call_args
-        self.assertIn('london/', call_args[1]['name'])  # Check if the blob name contains the city
-        self.assertEqual(json.loads(call_args[1]['data']), test_data)  # Check if the data matches
+        mock_blob_client.upload_blob.assert_called_once()
+        call_args = mock_blob_client.upload_blob.call_args
+        self.assertEqual(json.loads(call_args[0][0]), test_data)  # First arg is data
+        self.assertEqual(call_args[1], {'overwrite': True})  # Second arg is kwargs
 
     @patch.object(WeatherDataIngestion, 'fetch_weather_data')
     @patch.object(WeatherDataIngestion, 'upload_to_blob')

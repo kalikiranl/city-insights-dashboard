@@ -3,6 +3,9 @@ import json
 import requests
 from datetime import datetime
 from azure.storage.blob import BlobServiceClient
+import logging
+
+logger = logging.getLogger(__name__)
 
 class WeatherDataIngestion:
     def __init__(self):
@@ -46,24 +49,25 @@ class WeatherDataIngestion:
 
     def upload_to_blob(self, data, city):
         """Upload processed data to Azure Blob Storage."""
-        blob_service_client = BlobServiceClient.from_connection_string(self.connection_string)
-        container_name = "weather-data"
-        container_client = blob_service_client.get_container_client(container_name)
-        
-        # Create container if it doesn't exist
-        if not container_client.exists():
-            container_client.create_container()
-        
-        # Create blob name with city and timestamp
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        blob_name = f"{city['name'].lower()}/{timestamp}.json"
-        
-        # Upload data as JSON
-        container_client.upload_blob(
-            name=blob_name,
-            data=json.dumps(data),
-            overwrite=True
-        )
+        try:
+            # Initialize the blob service client
+            blob_service_client = BlobServiceClient.from_connection_string(self.connection_string)
+            container_name = "weather-data"
+            container_client = blob_service_client.get_container_client(container_name)
+            
+            # Create blob name with city and timestamp
+            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            blob_name = f"{city['name'].lower()}/{timestamp}.json"
+            
+            # Get blob client and upload data
+            blob_client = container_client.get_blob_client(blob_name)
+            blob_client.upload_blob(json.dumps(data), overwrite=True)
+            
+            logger.info(f"Successfully uploaded weather data for {city['name']} to blob storage")
+            return True
+        except Exception as e:
+            logger.error(f"Error uploading data to blob storage: {str(e)}")
+            raise
 
     def run_ingestion(self):
         """Run the complete ingestion process for all cities."""
