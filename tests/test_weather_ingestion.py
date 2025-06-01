@@ -13,10 +13,10 @@ from weather_ingestion import WeatherDataIngestion
 class TestWeatherDataIngestion(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
-        # Mock environment variables
+        # Mock environment variables with properly formatted connection string
         self.env_patcher = patch.dict('os.environ', {
             'OPENWEATHER_API_KEY': 'fake_api_key',
-            'AZURE_STORAGE_CONNECTION_STRING': 'fake_connection_string'
+            'AZURE_STORAGE_CONNECTION_STRING': 'DefaultEndpointsProtocol=https;AccountName=fakestorage;AccountKey=fake+key+with+base64==;EndpointSuffix=core.windows.net'
         })
         self.env_patcher.start()
         
