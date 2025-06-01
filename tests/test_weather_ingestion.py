@@ -14,9 +14,10 @@ class TestWeatherDataIngestion(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         # Mock environment variables with properly formatted connection string
+        self.mock_connection_string = 'DefaultEndpointsProtocol=https;AccountName=fakestorage;AccountKey=fake+key+with+base64==;EndpointSuffix=core.windows.net'
         self.env_patcher = patch.dict('os.environ', {
             'OPENWEATHER_API_KEY': 'fake_api_key',
-            'AZURE_STORAGE_CONNECTION_STRING': 'DefaultEndpointsProtocol=https;AccountName=fakestorage;AccountKey=fake+key+with+base64==;EndpointSuffix=core.windows.net'
+            'AZURE_STORAGE_CONNECTION_STRING': self.mock_connection_string
         })
         self.env_patcher.start()
         
@@ -45,7 +46,7 @@ class TestWeatherDataIngestion(unittest.TestCase):
     def test_init(self):
         """Test initialization of WeatherDataIngestion class."""
         self.assertEqual(self.ingestion.api_key, 'fake_api_key')
-        self.assertEqual(self.ingestion.connection_string, 'fake_connection_string')
+        self.assertEqual(self.ingestion.connection_string, self.mock_connection_string)
         self.assertEqual(len(self.ingestion.cities), 4)  # Check if all cities are included
 
     @patch('requests.get')
@@ -86,14 +87,18 @@ class TestWeatherDataIngestion(unittest.TestCase):
     @patch('azure.storage.blob.BlobServiceClient')
     def test_upload_to_blob(self, mock_blob_service):
         """Test blob storage upload."""
-        # Configure the mock container client
+        # Configure the mock container client with a proper chain of returns
         mock_container_client = MagicMock()
+        mock_blob_client = MagicMock()
+        
+        # Set up the chain of mocks
         mock_blob_service.from_connection_string.return_value = MagicMock()
         mock_blob_service.from_connection_string.return_value.get_container_client.return_value = mock_container_client
-
-        # Configure container exists check
-        mock_container_client.exists.return_value = True
-
+        mock_container_client.get_blob_client.return_value = mock_blob_client
+        
+        # Mock the exists method to avoid actual Azure calls
+        mock_container_client.exists = MagicMock(return_value=True)
+        
         # Test data
         test_data = {
             'city': 'London',
@@ -104,10 +109,14 @@ class TestWeatherDataIngestion(unittest.TestCase):
         # Test upload
         self.ingestion.upload_to_blob(test_data, {"name": "London", "country": "UK"})
         
-        # Verify blob upload was called
-        mock_container_client.upload_blob.assert_called_once()
+        # Verify the container client was called with correct name
+        mock_blob_service.from_connection_string.return_value.get_container_client.assert_called_once_with("weather-data")
         
-        # Verify the uploaded data
+        # Verify exists was called
+        mock_container_client.exists.assert_called_once()
+        
+        # Verify upload_blob was called with correct data
+        mock_container_client.upload_blob.assert_called_once()
         call_args = mock_container_client.upload_blob.call_args
         self.assertIn('london/', call_args[1]['name'])  # Check if the blob name contains the city
         self.assertEqual(json.loads(call_args[1]['data']), test_data)  # Check if the data matches
