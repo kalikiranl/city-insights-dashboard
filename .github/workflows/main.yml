@@ -65,12 +65,18 @@ jobs:
         app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
         package: .
         
+    - name: Install Databricks CLI
+      run: |
+        pip install databricks-cli
+        
+    - name: Configure Databricks CLI
+      run: |
+        echo "host ${{ secrets.DATABRICKS_HOST }}" > ~/.databrickscfg
+        echo "token ${{ secrets.DATABRICKS_TOKEN }}" >> ~/.databrickscfg
+        
     - name: Deploy Databricks Notebooks
-      uses: databricks/databricks-cli-action@v1
-      with:
-        databricks-host: ${{ secrets.DATABRICKS_HOST }}
-        databricks-token: ${{ secrets.DATABRICKS_TOKEN }}
-        command: workspace import_dir notebooks /Shared/city-insights-dashboard --overwrite
+      run: |
+        databricks workspace import_dir notebooks /Shared/city-insights-dashboard --overwrite
         
     - name: Deploy Data Factory Pipelines
       uses: azure/cli@v1
